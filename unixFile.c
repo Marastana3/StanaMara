@@ -4,57 +4,80 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <time.h>
 
 #define MAX_LENGTH 2
 
-void print_file_info(const char *path) {
+void get_last_modification_time(char *path){
     struct stat st;
-    char type;
-    
-    if (lstat(path, &st) == -1) {
-        perror(path);
-        exit(1);
-    }
-    
-    if (S_ISREG(st.st_mode)) {
-        type = 'R';
-    } else if (S_ISLNK(st.st_mode)) {
-        type = 'L';
-    } else if (S_ISDIR(st.st_mode)) {
-        type = 'D';
-    } else {
-        type = '-';
-    }
-    
-    printf("%s - %s\n", path, (type == 'R') ? "REGULAR FILE" :
-           ((type == 'L') ? "SYMBOLIC LINK" : (type == 'D') ? 
-           "DIRECTORY" : "OTHER"));
-
-    if(type == 'R'){
-        print_menu_regular_file(path);
-    }
-    else if(type == 'L'){
-        print_menu_symbolic_file(path);
-    }
-    else if(type == 'D'){
-        print_menu_directory(path);
-    }
+    stat(path, &st);
+    char date[10];
+    strftime(date, 20, "%d-%m-%y", localtime(&(st.st_ctime)));
+    printf("The file %s was last modified at %s\n", path, date);
+    date[0] = 0;
 }
 
-void print_menu_regular_file(const char *path){
+void access_rights(char *path){
+
+    struct stat st;
+    stat(path, &st);
+
+    printf("Owner permissions: \n");
+    if( st.st_mode & S_IRUSR )
+        printf("Read : YES \n");
+        else printf("Read : NO\n");
+    if( st.st_mode & S_IWUSR )
+        printf("Write : YES\n");
+        else printf("Write : NO\n");
+    if( st.st_mode & S_IXUSR )
+        printf("Execute : YES\n");
+        else printf("Execute : NO\n");
+    
+    printf("\n");
+
+    printf("Group permissions: \n");
+    if( st.st_mode & S_IRGRP )
+        printf("Read : YES\n");
+        else printf("Read : NO\n");
+    if( st.st_mode & S_IWGRP )
+        printf("Write : YES\n");
+        else printf("Write : NO\n");
+    if( st.st_mode & S_IXGRP )
+        printf("Execute : YES\n");
+        else printf("Execute : NO\n");
+
+    printf("\n");
+
+    printf("Others permissions: \n");
+    if( st.st_mode & S_IROTH )
+        printf("Read : YES\n");
+        else printf("Read : NO\n");
+    if( st.st_mode & S_IWOTH )
+        printf("Write : YES\n");
+        else printf("Write : NO\n");
+    if( st.st_mode & S_IXOTH )
+        printf("Execute : Yes\n");
+        else printf("Execute : NO\n");
+
+    printf("\n");
+
+}
+
+void print_menu_regular_file(char *path){
     struct stat st;
     char option[MAX_LENGTH];
+
     beginning :
     printf("\n");
     printf("~~~~~~~~~~ MENU ~~~~~~~~~~\n");
     printf("\nPlease select an option:\n");
-        printf("-n NAME\n");
-        printf("-d SIZE\n");
+        printf("-n NAME\n");//
+        printf("-d SIZE\n");//
         printf("-h HARD DISK COUNT\n");
-        printf("-m TIME OF LAST MODIFICATION\n");
-        printf("-a ACCESS RIGHTS\n");
-        printf("-l CREATE SYMBOLIC LINK\n");
-        printf("-q QUIT\n");
+        printf("-m TIME OF LAST MODIFICATION\n");//
+        printf("-a ACCESS RIGHTS\n");//
+        printf("-l CREATE SYMBOLIC LINK\n");//
+        printf("-q QUIT\n");//
 
     scanf("%s", option);
 
@@ -74,9 +97,11 @@ void print_menu_regular_file(const char *path){
     }
     else if (strcmp(option, "-m") == 0) {
         printf("You selected the TIME OF LAST MODIFICATION option.\n");
+        get_last_modification_time(path);
     }
     else if (strcmp(option, "-a") == 0) {
         printf("You selected the ACCESS RIGHTS option.\n");
+        access_rights(path);
     }
     else if (strcmp(option, "-l") == 0) {
         printf("You selected the CREATE SYMBOLIC LINK option.\n");
@@ -98,19 +123,20 @@ void print_menu_regular_file(const char *path){
 
 }
 
-void print_menu_symbolic_file(const char *path){
+void print_menu_symbolic_file(char *path){
     struct stat st;
     char option[MAX_LENGTH];
+
     beginning :
     printf("\n");
     printf("~~~~~~~~~~ MENU ~~~~~~~~~~\n");
     printf("\nPlease select an option:\n");
-        printf("-n NAME\n");
-        printf("-d SIZE OF SYMBOLIC LINK\n");
+        printf("-n NAME\n");//
+        printf("-d SIZE OF SYMBOLIC LINK\n");//
         printf("-t SIZE OF TARGET FILE\n");
-        printf("-a ACCESS RIGHTS\n");
-        printf("-l CREATE SYMBOLIC LINK\n");
-        printf("-q QUIT\n");
+        printf("-a ACCESS RIGHTS\n");//
+        printf("-l DELETE SYMBOLIC LINK\n");
+        printf("-q QUIT\n");//
 
     scanf("%s", option);
 
@@ -153,9 +179,10 @@ void print_menu_symbolic_file(const char *path){
 
 }
 
-void print_menu_directory(const char *path){
+void print_menu_directory(char *path){
     struct stat st;
     char option[MAX_LENGTH];
+
     beginning :
     printf("\n");
     printf("~~~~~~~~~~ MENU ~~~~~~~~~~\n");
@@ -190,6 +217,40 @@ void print_menu_directory(const char *path){
     }
      
 
+}
+
+void print_file_info(char *path) {
+    struct stat st;
+    char type;
+    
+    if (lstat(path, &st) == -1) {
+        perror(path);
+        exit(1);
+    }
+    
+    if (S_ISREG(st.st_mode)) {
+        type = 'R';
+    } else if (S_ISLNK(st.st_mode)) {
+        type = 'L';
+    } else if (S_ISDIR(st.st_mode)) {
+        type = 'D';
+    } else {
+        type = '-';
+    }
+    
+    printf("%s - %s\n", path, (type == 'R') ? "REGULAR FILE" :
+           ((type == 'L') ? "SYMBOLIC LINK" : (type == 'D') ? 
+           "DIRECTORY" : "OTHER"));
+
+    if(type == 'R'){
+        print_menu_regular_file(path);
+    }
+    else if(type == 'L'){
+        print_menu_symbolic_file(path);
+    }
+    else if(type == 'D'){
+        print_menu_directory(path);
+    }
 }
 
 int main(int argc, char* argv[]) {
