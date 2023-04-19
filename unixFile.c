@@ -3,7 +3,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#define MAX_LENGTH 1
+#define MAX_LENGTH 2
 
 void print_file_info(const char *path) {
     struct stat st;
@@ -31,9 +31,47 @@ void print_file_info(const char *path) {
 
 void print_menu_regular_file(char* argv[]){
     char option[MAX_LENGTH];
+    beginning :
+    printf("\n");
     printf("~~~~~~~~~~ MENU ~~~~~~~~~~\n");
-    
-     do {
+    printf("\nPlease select an option:\n");
+        printf("-n NAME\n");
+        printf("-d SIZE\n");
+        printf("-h HARD DISK COUNT\n");
+        printf("-m TIME OF LAST MODIFICATION\n");
+        printf("-a ACCESS RIGHTS\n");
+        printf("-l CREATE SYMBOLIC LINK\n");
+        printf("-q Quit\n");
+
+    scanf("%s", option);
+
+    if (strcmp(option, "-n") == 0) {
+        printf("You selected the NAME option.\n");
+    }
+    else if (strcmp(option, "-d") == 0) {
+        printf("You selected the SIZE option.\n");
+    }
+    else if (strcmp(option, "-h") == 0) {
+        printf("You selected the HARD DISCK COUNT option.\n");
+    }
+    else if (strcmp(option, "-m") == 0) {
+        printf("You selected the TIME OF LAST MODIFICATION option.\n");
+    }
+    else if (strcmp(option, "-a") == 0) {
+        printf("You selected the ACCESS RIGHTS option.\n");
+    }
+    else if (strcmp(option, "-l") == 0) {
+        printf("You selected the CREATE SYMBOLIC LINK option.\n");
+    }
+    else if (strcmp(option, "-q") == 0) {
+        printf("You selected the QUIT option. \n");
+        printf("Goodbye!! :D\n");
+    }
+    else {
+        printf("Invalid option. Please try again.\n");
+        goto beginning;
+    }
+     /*do {
         printf("\nPlease select an option:\n");
         printf("-n NAME\n");
         printf("-d SIZE\n");
@@ -43,9 +81,7 @@ void print_menu_regular_file(char* argv[]){
         printf("-l CREATE SYMBOLIC LINK\n");
         printf("-q Quit\n");
 
-        for(int i = 0; i < MAX_LENGTH; ++i){
-            scanf("%c", &option[i]);
-        }
+        fgets(option, MAX_LENGTH, stdin);
 
         switch(option[1]) {
             case 'n':
@@ -72,7 +108,53 @@ void print_menu_regular_file(char* argv[]){
             default:
                 printf("Invalid option. Please try again.\n");
         }
-    } while (option != 'q');
+    } while (option[1] != 'q'); */
+
+}
+
+void print_menu_symbolic_file(char* argv[]){
+    char option[MAX_LENGTH];
+    beginning :
+    printf("\n");
+    printf("~~~~~~~~~~ MENU ~~~~~~~~~~\n");
+    printf("\nPlease select an option:\n");
+        printf("-n NAME\n");
+        printf("-d SIZE\n");
+        printf("-h HARD DISK COUNT\n");
+        printf("-m TIME OF LAST MODIFICATION\n");
+        printf("-a ACCESS RIGHTS\n");
+        printf("-l CREATE SYMBOLIC LINK\n");
+        printf("-q Quit\n");
+
+    scanf("%s", option);
+
+    if (strcmp(option, "-n") == 0) {
+        printf("You selected the NAME option.\n");
+    }
+    else if (strcmp(option, "-d") == 0) {
+        printf("You selected the SIZE option.\n");
+    }
+    else if (strcmp(option, "-h") == 0) {
+        printf("You selected the HARD DISCK COUNT option.\n");
+    }
+    else if (strcmp(option, "-m") == 0) {
+        printf("You selected the TIME OF LAST MODIFICATION option.\n");
+    }
+    else if (strcmp(option, "-a") == 0) {
+        printf("You selected the ACCESS RIGHTS option.\n");
+    }
+    else if (strcmp(option, "-l") == 0) {
+        printf("You selected the CREATE SYMBOLIC LINK option.\n");
+    }
+    else if (strcmp(option, "-q") == 0) {
+        printf("You selected the QUIT option.\n");
+        printf("Goodbye!! :D \n");
+    }
+    else {
+        printf("Invalid option. Please try again.\n");
+        goto beginning;
+    }
+     
 
 }
 
