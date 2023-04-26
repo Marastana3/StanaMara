@@ -125,6 +125,7 @@ void print_menu_regular_file(char *path){
 
 void print_menu_symbolic_file(char *path){
     struct stat st;
+    int ret;
     char option[MAX_LENGTH];
 
     beginning :
@@ -133,9 +134,9 @@ void print_menu_symbolic_file(char *path){
     printf("\nPlease select an option:\n");
         printf("-n NAME\n");//
         printf("-d SIZE OF SYMBOLIC LINK\n");//
-        printf("-t SIZE OF TARGET FILE\n");
+        printf("-t SIZE OF TARGET FILE\n");//
         printf("-a ACCESS RIGHTS\n");//
-        printf("-l DELETE SYMBOLIC LINK\n");
+        printf("-l DELETE SYMBOLIC LINK\n");//
         printf("-q QUIT\n");//
 
     scanf("%s", option);
@@ -153,9 +154,21 @@ void print_menu_symbolic_file(char *path){
     }
     else if (strcmp(option, "-t") == 0) {
         printf("You selected the SIZE OF TARGET FILE option.\n");
+        if (ret == -1){
+            perror("lstat");
+            exit(EXIT_FAILURE);
+        }
+        ret = stat(path, &st);
+
+        if (ret == -1){
+            perror("stat");
+            exit(EXIT_FAILURE);
+        }
+        printf("Size of target file: %ld bytes\n", st.st_size);
     }
     else if (strcmp(option, "-a") == 0) {
         printf("You selected the ACCESS RIGHTS option.\n");
+        access_rights(path);
     }
     else if (strcmp(option, "-l") == 0) {
         printf("You selected the DELETE SYMBOLIC LINK option.\n");
@@ -187,9 +200,9 @@ void print_menu_directory(char *path){
     printf("\n");
     printf("~~~~~~~~~~ MENU ~~~~~~~~~~\n");
     printf("\nPlease select an option:\n");
-        printf("-n NAME\n");
-        printf("-d SIZE\n");
-        printf("-a ACCESS RIGHTS\n");
+        printf("-n NAME\n");//
+        printf("-d SIZE\n");//
+        printf("-a ACCESS RIGHTS\n");//
         printf("-c NUMBER OF FILES WITH THE .C EXTENSION\n");
         printf("-q Quit\n");
 
@@ -197,15 +210,21 @@ void print_menu_directory(char *path){
 
     if (strcmp(option, "-n") == 0) {
         printf("You selected the NAME option.\n");
+         char* name = basename(path);
+         printf("The name of the file is: %s\n", name);
     }
     else if (strcmp(option, "-d") == 0) {
-        printf("You selected the SIZE OF SYMBOLIC LINK option.\n");
+        printf("You selected the SIZE OF DIRECTORY option.\n");
+        if (stat(path, &st) == 0) {
+            printf("File size: %ld bytes\n", st.st_size);
+        } else printf("Error getting file size\n");
     }
     else if (strcmp(option, "-a") == 0) {
         printf("You selected the ACCESS RIGHTS option.\n");
+        access_rights(path);
     }
-    else if (strcmp(option, "-C") == 0) {
-        printf("You selected the NUMBER OF FILES WITH THE .C EXTENSION option.\n");
+    else if (strcmp(option, "-c") == 0) {
+        printf("You selected the NUMBER OF FILES WITH THE .c EXTENSION option.\n");
     }
     else if (strcmp(option, "-q") == 0) {
         printf("You selected the QUIT option.\n");
@@ -261,4 +280,3 @@ int main(int argc, char* argv[]) {
     print_file_info(argv[1]);
     return 0;
 }
-//check for input string, if letter not valid option --> error message + re-print menu
