@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include<sys/wait.h>
 #include <unistd.h>
 #include <libgen.h>
 #include <time.h>
@@ -79,31 +80,36 @@ void print_menu_regular_file(char *path){
         printf("-l CREATE SYMBOLIC LINK\n");//
         printf("-q QUIT\n");//
 
+    printf("\n");
     scanf("%s", option);
 
-    if (strcmp(option, "-n") == 0) {
+    for(int i = 0; i < strlen(option); ++i){
+        if(option[i] == '-'){
+            continue;
+        }
+        else if (option[i] == 'n') {
         printf("You selected the NAME option.\n");
         char* name = basename(path);
         printf("The name of the file is: %s\n", name);
     }
-    else if (strcmp(option, "-d") == 0) {
+    else if (option[i] == 'd') {
         printf("You selected the SIZE option.\n");
         if (stat(path, &st) == 0) {
             printf("File size: %ld bytes\n", st.st_size);
         } else printf("Error getting file size\n");
     }
-    else if (strcmp(option, "-h") == 0) {
+    else if (option[i] == 'h') {
         printf("You selected the HARD DISCK COUNT option.\n");
     }
-    else if (strcmp(option, "-m") == 0) {
+    else if (option[i] == 'm') {
         printf("You selected the TIME OF LAST MODIFICATION option.\n");
         get_last_modification_time(path);
     }
-    else if (strcmp(option, "-a") == 0) {
+    else if (option[i] == 'a') {
         printf("You selected the ACCESS RIGHTS option.\n");
         access_rights(path);
     }
-    else if (strcmp(option, "-l") == 0) {
+    else if (option[i] == 'l') {
         printf("You selected the CREATE SYMBOLIC LINK option.\n");
         char symbolic[100];
         scanf("%s", symbolic);
@@ -112,13 +118,15 @@ void print_menu_regular_file(char *path){
            exit(1);
         }
     }
-    else if (strcmp(option, "-q") == 0) {
+    else if (option[i] == 'q') {
         printf("You selected the QUIT option. \n");
         printf("Goodbye!! :D\n");
     }
-    else {
+    else if(option[i] != '-' || option[i] != 'n' || option[i] != 'd' || option[i] != 'h' ||
+            option[i] != 'm' || option[i] !='a' || option[i] != 'l' || option[i] != 'q' ) {
         printf("Invalid option. Please try again.\n");
         goto beginning;
+        }
     }
 
 }
@@ -140,19 +148,23 @@ void print_menu_symbolic_file(char *path){
         printf("-q QUIT\n");//
 
     scanf("%s", option);
+    printf("\n");
 
-    if (strcmp(option, "-n") == 0) {
+    for(int i = 0; i <= strlen(option); ++i){
+        if(option[i] == '-')
+            continue;
+        if (option[i] == 'n') {
         printf("You selected the NAME option.\n");
         char* name = basename(path);
         printf("The name of the file is: %s\n", name);
     }
-    else if (strcmp(option, "-d") == 0) {
+    else if (option[i] == 'd') {
         printf("You selected the SIZE OF SYMBOLIC LINK option.\n");
         if (stat(path, &st) == 0) {
             printf("File size: %ld bytes\n", st.st_size);
         } else printf("Error getting file size\n");
     }
-    else if (strcmp(option, "-t") == 0) {
+    else if (option[i] == 't') {
         printf("You selected the SIZE OF TARGET FILE option.\n");
         if (ret == -1){
             perror("lstat");
@@ -166,11 +178,11 @@ void print_menu_symbolic_file(char *path){
         }
         printf("Size of target file: %ld bytes\n", st.st_size);
     }
-    else if (strcmp(option, "-a") == 0) {
+    else if (option[i] == 'a') {
         printf("You selected the ACCESS RIGHTS option.\n");
         access_rights(path);
     }
-    else if (strcmp(option, "-l") == 0) {
+    else if (option[i] == 'l') {
         printf("You selected the DELETE SYMBOLIC LINK option.\n");
 
         if (unlink(path) == 0) {
@@ -180,13 +192,15 @@ void print_menu_symbolic_file(char *path){
             exit(1);
         }
     }
-    else if (strcmp(option, "-q") == 0) {
+    else if (option[i] == 'q') {
         printf("You selected the QUIT option.\n");
         printf("Goodbye!! :D \n");
     }
-    else {
+    else if(option[i] != '-' || option[i] != 'n' || option[i] != 'd' || option[i] != 'h' ||
+            option[i] != 'm' || option[i] !='a' || option[i] != 'l' || option[i] != 'q' ) {
         printf("Invalid option. Please try again.\n");
         goto beginning;
+        }
     }
      
 
@@ -204,37 +218,69 @@ void print_menu_directory(char *path){
         printf("-d SIZE\n");//
         printf("-a ACCESS RIGHTS\n");//
         printf("-c NUMBER OF FILES WITH THE .C EXTENSION\n");
-        printf("-q Quit\n");
+        printf("-q Quit\n");//
 
     scanf("%s", option);
 
-    if (strcmp(option, "-n") == 0) {
+    for(int i = 0; i <= strlen(option); ++i){
+        if(option[i] == '-') {
+            continue;
+        }
+        if (option[i] == 'n') {
         printf("You selected the NAME option.\n");
          char* name = basename(path);
          printf("The name of the file is: %s\n", name);
     }
-    else if (strcmp(option, "-d") == 0) {
+    else if (option[i] == 'd') {
         printf("You selected the SIZE OF DIRECTORY option.\n");
         if (stat(path, &st) == 0) {
             printf("File size: %ld bytes\n", st.st_size);
         } else printf("Error getting file size\n");
     }
-    else if (strcmp(option, "-a") == 0) {
+    else if (option[i] == 'a') {
         printf("You selected the ACCESS RIGHTS option.\n");
         access_rights(path);
     }
-    else if (strcmp(option, "-c") == 0) {
+    else if (option[i] == 'c') {
         printf("You selected the NUMBER OF FILES WITH THE .c EXTENSION option.\n");
     }
-    else if (strcmp(option, "-q") == 0) {
+    else if (option[i] == 'q') {
         printf("You selected the QUIT option.\n");
         printf("Goodbye!! :D \n");
     }
-    else {
+    else if(option[i] != '-' || option[i] != 'n' || option[i] != 'd' || option[i] != 'a' || option[i] != 'c' || option[i] !='q'){
         printf("Invalid option. Please try again.\n");
-        goto beginning;
+        goto beginning;   
+        }
     }
-     
+}
+
+void create_child_process(){
+    pid_t pid, w;
+    pid = fork();
+    int wstatus;
+
+    if(pid<0) {
+        printf("error fork()");
+        exit(1);
+    }
+    
+    if(pid==0) {
+        printf("this is the child process with pid %d \n", getpid());
+        
+        //execute script:
+
+        exit(5);
+    }
+    else {
+        if(pid>0) {
+            printf("this is the parent process\n");
+            w = wait(&wstatus);
+            if(WIFEXITED(wstatus)) {
+                printf("process with pid %d, exited, status = %d\n", w, WEXITSTATUS(wstatus));
+            }
+        }
+    }
 
 }
 
@@ -263,6 +309,8 @@ void print_file_info(char *path) {
 
     if(type == 'R'){
         print_menu_regular_file(path);
+        create_child_process();
+
     }
     else if(type == 'L'){
         print_menu_symbolic_file(path);
