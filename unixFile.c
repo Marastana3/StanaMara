@@ -6,8 +6,10 @@
 #include <unistd.h>
 #include <libgen.h>
 #include <time.h>
+#include <dirent.h>
 
-#define MAX_LENGTH 2
+#define _DEFAULT_SOURCE
+#define MAX_LENGTH 10
 
 void get_last_modification_time(char *path){
     struct stat st;
@@ -62,6 +64,28 @@ void access_rights(char *path){
 
     printf("\n");
 
+}
+
+void count_c_files(char *path) {
+    DIR *dir;
+    struct dirent *ent;
+    int count = 0;
+    
+    dir = opendir(path);
+    if (dir == NULL) {
+        perror("Error opening directory");
+        exit(1);
+    }
+    
+    while ((ent = readdir(dir)) != NULL) {
+        if (ent->d_type == DT_REG) { 
+            if (strcmp(ent->d_name + strlen(ent->d_name) - 2, ".c") == 0) {
+                count++;
+            }
+        }
+    }
+    printf("The number of files with the .c extention is: %d\n", count);
+    closedir(dir);
 }
 
 void print_menu_regular_file(char *path){
@@ -123,7 +147,7 @@ void print_menu_regular_file(char *path){
         printf("Goodbye!! :D\n");
     }
     else if(option[i] != '-' || option[i] != 'n' || option[i] != 'd' || option[i] != 'h' ||
-            option[i] != 'm' || option[i] !='a' || option[i] != 'l' || option[i] != 'q' ) {
+            option[i] != 'm' || option[i] != 'a' || option[i] != 'l' || option[i] != 'q' ) {
         printf("Invalid option. Please try again.\n");
         goto beginning;
         }
@@ -197,9 +221,9 @@ void print_menu_symbolic_file(char *path){
         printf("Goodbye!! :D \n");
     }
     else if(option[i] != '-' || option[i] != 'n' || option[i] != 'd' || option[i] != 'h' ||
-            option[i] != 'm' || option[i] !='a' || option[i] != 'l' || option[i] != 'q' ) {
-        printf("Invalid option. Please try again.\n");
-        goto beginning;
+            option[i] != 'm' || option[i] != 'a' || option[i] != 'l' || option[i] != 'q' ) {
+            printf("Invalid option. Please try again.\n");
+            goto beginning;
         }
     }
      
@@ -207,82 +231,55 @@ void print_menu_symbolic_file(char *path){
 }
 
 void print_menu_directory(char *path){
-    struct stat st;
-    char option[MAX_LENGTH];
+   struct stat st;
+   char option[MAX_LENGTH];
 
-    beginning :
-    printf("\n");
-    printf("~~~~~~~~~~ MENU ~~~~~~~~~~\n");
-    printf("\nPlease select an option:\n");
-        printf("-n NAME\n");//
-        printf("-d SIZE\n");//
-        printf("-a ACCESS RIGHTS\n");//
-        printf("-c NUMBER OF FILES WITH THE .C EXTENSION\n");
-        printf("-q Quit\n");//
+   beginning :
+   printf("\n");
+   printf("\nPlease select an option:\n");
+        printf("-n NAME\n");
+        printf("-d SIZE\n");
+        printf("-a ACCESS RIGHTS\n");
+        printf("-c NUMBER OF FILES WITH THE .C EXTENTION\n");
+        printf("-q QUIT\n");
 
     scanf("%s", option);
 
-    for(int i = 0; i <= strlen(option); ++i){
-        if(option[i] == '-') {
-            continue;
+    for(int i = 0; i <= strlen(option) ; ++i){
+        if(option[i] == '-') continue;
+
+        if(option[i] == 'n'){
+            printf("You selected the name option.\n");
+            char* name = basename(path);
+            printf("The name of the file is: %s\n", name);
         }
-        if (option[i] == 'n') {
-        printf("You selected the NAME option.\n");
-         char* name = basename(path);
-         printf("The name of the file is: %s\n", name);
-    }
-    else if (option[i] == 'd') {
-        printf("You selected the SIZE OF DIRECTORY option.\n");
-        if (stat(path, &st) == 0) {
-            printf("File size: %ld bytes\n", st.st_size);
-        } else printf("Error getting file size\n");
-    }
-    else if (option[i] == 'a') {
-        printf("You selected the ACCESS RIGHTS option.\n");
-        access_rights(path);
-    }
-    else if (option[i] == 'c') {
-        printf("You selected the NUMBER OF FILES WITH THE .c EXTENSION option.\n");
-    }
-    else if (option[i] == 'q') {
-        printf("You selected the QUIT option.\n");
-        printf("Goodbye!! :D \n");
-    }
-    else if(option[i] != '-' || option[i] != 'n' || option[i] != 'd' || option[i] != 'a' || option[i] != 'c' || option[i] !='q'){
-        printf("Invalid option. Please try again.\n");
-        goto beginning;   
+        else if(option[i] == 'd'){
+            printf("You selected the SIZE OF DIRECTORY option.\n");
+            if(stat(path, &st) == 0){
+                printf("File size: %ld bytes\n", st.st_size);
+            } else printf("Error getting file size\n");
         }
-    }
-}
-
-void create_child_process(){
-    pid_t pid, w;
-    pid = fork();
-    int wstatus;
-
-    if(pid<0) {
-        printf("error fork()");
-        exit(1);
-    }
-    
-    if(pid==0) {
-        printf("this is the child process with pid %d \n", getpid());
-        
-        //execute script:
-
-        exit(5);
-    }
-    else {
-        if(pid>0) {
-            printf("this is the parent process\n");
-            w = wait(&wstatus);
-            if(WIFEXITED(wstatus)) {
-                printf("process with pid %d, exited, status = %d\n", w, WEXITSTATUS(wstatus));
-            }
+        else if(option[i] == 'a'){
+            printf("You selected the ACCESS RIGHTS option.\n");
+            access_rights(path);
+        }
+        else if(option[i] == 'c'){
+            printf("You selected the NUMBER OF FILES WITH THE .C EXTENTION option.\n");
+            count_c_files(path);
+        }
+        else if(option[i] == 'q'){
+            printf("You selected the QUIT option.\n");
+            printf("Goodbye!! :D \n");
+        }
+        else if(option[i] != '-' || option[i] != 'n' || option[i] != 'd' || option[i] != 'a' ||
+                option[i] != 'c' || option[i] != 'q'){
+            printf("Invalid option. Please try again.\n");
+            goto beginning;
         }
     }
 
 }
+
 
 void print_file_info(char *path) {
     struct stat st;
@@ -309,7 +306,6 @@ void print_file_info(char *path) {
 
     if(type == 'R'){
         print_menu_regular_file(path);
-        create_child_process();
 
     }
     else if(type == 'L'){
@@ -321,10 +317,59 @@ void print_file_info(char *path) {
 }
 
 int main(int argc, char* argv[]) {
+    
     if (argc <= 1) {
         printf("Error, incorrect number of arguments!\n");
         exit(1);
     }
     print_file_info(argv[1]);
+
+      // Check if the file exists and is a regular file
+    struct stat sb;
+    if (stat(argv[1], &sb) == -1) {
+        perror("stat");
+        return 1;
+    }
+
+    if (!S_ISREG(sb.st_mode)) {
+        fprintf(stderr, "%s is not a regular file\n", argv[1]);
+        return 1;
+    }
+
+    // Check if the file extension is .c
+    char *ext = strrchr(argv[1], '.');
+    if (ext == NULL || strcmp(ext, ".c") != 0) {
+        fprintf(stderr, "%s is not a C file\n", argv[1]);
+        return 1;
+    }
+
+    // Create a child process to compile the file
+    pid_t pid = fork();
+    if (pid == -1) {
+        perror("fork");
+        return 1;
+    } else if (pid == 0) {
+        // Child process
+        execlp("gcc", "gcc", "-o", "/dev/null", "-Wall", "-Werror", argv[1], NULL);
+        perror("execlp");
+        exit(1);
+    }
+
+    // Wait for the child process to finish and get its exit status
+    int status;
+    if (waitpid(pid, &status, 0) == -1) {
+        perror("waitpid");
+        return 1;
+    }
+
+    // Print the number of errors and warnings
+    if (WIFEXITED(status)) {
+        int exit_status = WEXITSTATUS(status);
+        int errors = exit_status & 0xff;
+        int warnings = (exit_status >> 8) & 0xff;
+        printf("Errors: %d\n", errors);
+        printf("Warnings: %d\n", warnings);
+    }
+
     return 0;
 }
