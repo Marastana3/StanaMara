@@ -8,8 +8,9 @@
 #include <time.h>
 #include <dirent.h>
 
-#define _DEFAULT_SOURCE
 #define MAX_LENGTH 10
+#define MAX_ARGS 10
+#define BUF_SIZE 258
 
 void get_last_modification_time(char *path){
     struct stat st;
@@ -18,6 +19,16 @@ void get_last_modification_time(char *path){
     strftime(date, 20, "%d-%m-%y", localtime(&(st.st_ctime)));
     printf("The file %s was last modified at %s\n", path, date);
     date[0] = 0;
+}
+
+void print_disk_count(char *path) {
+    struct stat st;
+    if (stat(path, &st) == 0) {
+        unsigned long long disk_count = st.st_blocks / 2;
+        printf("Hard disk count of file %s: %llu KB\n", path, disk_count);
+    } else {
+        perror("Error getting file stats");
+    }
 }
 
 void access_rights(char *path){
@@ -78,13 +89,20 @@ void count_c_files(char *path) {
     }
     
     while ((ent = readdir(dir)) != NULL) {
-        if (ent->d_type == DT_REG) { 
+        char filename[BUF_SIZE];
+        snprintf(filename, BUF_SIZE, "%s/%s", path, ent->d_name);
+        struct stat st;
+        if (stat(filename, &st) == -1) {
+            perror("stat");
+            exit(1);
+        }
+        if (S_ISREG(st.st_mode)) { 
             if (strcmp(ent->d_name + strlen(ent->d_name) - 2, ".c") == 0) {
                 count++;
             }
         }
     }
-    printf("The number of files with the .c extention is: %d\n", count);
+    printf("The number of files with the .c extension is: %d\n", count);
     closedir(dir);
 }
 
@@ -98,7 +116,7 @@ void print_menu_regular_file(char *path){
     printf("\nPlease select an option:\n");
         printf("-n NAME\n");//
         printf("-d SIZE\n");//
-        printf("-h HARD DISK COUNT\n");
+        printf("-h HARD DISK COUNT\n");//
         printf("-m TIME OF LAST MODIFICATION\n");//
         printf("-a ACCESS RIGHTS\n");//
         printf("-l CREATE SYMBOLIC LINK\n");//
@@ -124,6 +142,7 @@ void print_menu_regular_file(char *path){
     }
     else if (option[i] == 'h') {
         printf("You selected the HARD DISCK COUNT option.\n");
+        print_disk_count(path);
     }
     else if (option[i] == 'm') {
         printf("You selected the TIME OF LAST MODIFICATION option.\n");
@@ -174,7 +193,7 @@ void print_menu_symbolic_file(char *path){
     scanf("%s", option);
     printf("\n");
 
-    for(int i = 0; i <= strlen(option); ++i){
+    for(int i = 0; i < strlen(option); ++i){
         if(option[i] == '-')
             continue;
         if (option[i] == 'n') {
@@ -237,15 +256,15 @@ void print_menu_directory(char *path){
    beginning :
    printf("\n");
    printf("\nPlease select an option:\n");
-        printf("-n NAME\n");
-        printf("-d SIZE\n");
-        printf("-a ACCESS RIGHTS\n");
-        printf("-c NUMBER OF FILES WITH THE .C EXTENTION\n");
-        printf("-q QUIT\n");
+        printf("-n NAME\n");//
+        printf("-d SIZE\n");//
+        printf("-a ACCESS RIGHTS\n");//
+        printf("-c NUMBER OF FILES WITH THE .C EXTENTION\n");//
+        printf("-q QUIT\n");//
 
     scanf("%s", option);
 
-    for(int i = 0; i <= strlen(option) ; ++i){
+    for(int i = 0; i < strlen(option) ; ++i){
         if(option[i] == '-') continue;
 
         if(option[i] == 'n'){
@@ -316,60 +335,103 @@ void print_file_info(char *path) {
     }
 }
 
-int main(int argc, char* argv[]) {
-    
-    if (argc <= 1) {
-        printf("Error, incorrect number of arguments!\n");
-        exit(1);
-    }
-    print_file_info(argv[1]);
+void run_script(char *path) {
+    int pipefd[2];
+    pid_t pid;
+    char buf[BUF_SIZE];
 
-      // Check if the file exists and is a regular file
-    struct stat sb;
-    if (stat(argv[1], &sb) == -1) {
-        perror("stat");
-        return 1;
+    if (pipe(pipefd) == -1) {
+        perror("pipe");
+        exit(EXIT_FAILURE);
     }
 
-    if (!S_ISREG(sb.st_mode)) {
-        fprintf(stderr, "%s is not a regular file\n", argv[1]);
-        return 1;
-    }
-
-    // Check if the file extension is .c
-    char *ext = strrchr(argv[1], '.');
-    if (ext == NULL || strcmp(ext, ".c") != 0) {
-        fprintf(stderr, "%s is not a C file\n", argv[1]);
-        return 1;
-    }
-
-    // Create a child process to compile the file
-    pid_t pid = fork();
+    pid = fork();
+    print_file_info(path);
     if (pid == -1) {
         perror("fork");
-        return 1;
+        exit(EXIT_FAILURE);
     } else if (pid == 0) {
-        // Child process
-        execlp("gcc", "gcc", "-o", "/dev/null", "-Wall", "-Werror", argv[1], NULL);
+        // child process
+        close(pipefd[0]); // close unused read end of pipe
+        dup2(pipefd[1], STDOUT_FILENO); // redirect stdout to pipe write end
+
+        execlp("./script.sh", "./script.sh", path, NULL);
         perror("execlp");
-        exit(1);
+        exit(EXIT_FAILURE);
+    } else {
+        // parent process
+        close(pipefd[1]); // close unused write end of pipe
+
+        int status;
+        waitpid(pid, &status, 0);
+
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+            int warnings = 0, errors = 0;
+            while (fgets(buf, BUF_SIZE, stdin) != NULL) {
+                if (strstr(buf, "warning")) {
+                    warnings++;
+                }
+                if (strstr(buf, "error")) {
+                    errors++;
+                }
+            }
+
+            int score;
+            if (errors == 0 && warnings == 0) {
+                score = 10;
+            } else if (errors >= 1) {
+                score = 1;
+            } else if (warnings > 10) {
+                score = 2;
+            } else {
+                score = 2 + 8 * (10 - warnings) / 10;
+            }
+
+            char* filename = strrchr(path, '/') + 1;
+            printf("%s: %d\n", filename, score);
+            FILE* f = fopen("grades.txt", "a");
+            fprintf(f, "%s: %d\n", filename, score);
+            fclose(f);
+        } else {
+            printf("Failed to run script for file: %s\n", path);
+        }
+    }
+}
+
+int main(int argc, char* argv[]) {
+    
+     pid_t pid[MAX_ARGS];
+     int i, j;
+
+    for (i = 1; i < argc; i++) {
+        pid[i] = fork();
+        if (pid[i] == -1) {
+            perror("fork");
+            exit(EXIT_FAILURE);
+        } else if (pid[i] == 0) {
+            // child process
+            struct stat statbuf;
+            if (stat(argv[i], &statbuf) == -1) {
+                perror("stat");
+                exit(EXIT_FAILURE);
+            }
+
+            if (S_ISREG(statbuf.st_mode) && strstr(argv[i], ".c") != NULL) {
+                run_script(argv[i]);
+            } else {
+                // Handle other file types here based on the user options
+                printf("File type not supported: %s\n", argv[i]);
+            }
+
+            exit(EXIT_SUCCESS);
+        }
     }
 
-    // Wait for the child process to finish and get its exit status
-    int status;
-    if (waitpid(pid, &status, 0) == -1) {
-        perror("waitpid");
-        return 1;
-    }
-
-    // Print the number of errors and warnings
-    if (WIFEXITED(status)) {
-        int exit_status = WEXITSTATUS(status);
-        int errors = exit_status & 0xff;
-        int warnings = (exit_status >> 8) & 0xff;
-        printf("Errors: %d\n", errors);
-        printf("Warnings: %d\n", warnings);
+    // parent process waits for all child processes to finish
+    for (j = 1; j < i; j++) {
+        waitpid(pid[j], NULL, 0);
     }
 
     return 0;
+   
 }
