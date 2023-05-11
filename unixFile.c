@@ -255,6 +255,7 @@ void print_menu_directory(char *path){
 
    beginning :
    printf("\n");
+   printf("~~~~~~~~~~ MENU ~~~~~~~~~~\n");
    printf("\nPlease select an option:\n");
         printf("-n NAME\n");//
         printf("-d SIZE\n");//
@@ -398,40 +399,51 @@ void run_script(char *path) {
     }
 }
 
+void child1(char *path) {
+    printf("Child process 1 (PID %d)\n", getpid());
+    print_file_info(path);
+}
+
+void child2(char *path) {
+    printf("Child process 2 (PID %d)\n", getpid());
+    // Execute script.sh + compute score
+}
+
 int main(int argc, char* argv[]) {
     
-     pid_t pid[MAX_ARGS];
-     int i, j;
+    for (int i = 1; i < argc; ++i) {
+       int arg = atoi(argv[i]);
 
-    for (i = 1; i < argc; i++) {
-        pid[i] = fork();
-        if (pid[i] == -1) {
-            perror("fork");
-            exit(EXIT_FAILURE);
-        } else if (pid[i] == 0) {
-            // child process
-            struct stat statbuf;
-            if (stat(argv[i], &statbuf) == -1) {
-                perror("stat");
-                exit(EXIT_FAILURE);
-            }
+        pid_t pid1, pid2;
 
-            if (S_ISREG(statbuf.st_mode) && strstr(argv[i], ".c") != NULL) {
-                run_script(argv[i]);
-            } else {
-                // Handle other file types here based on the user options
-                printf("File type not supported: %s\n", argv[i]);
-            }
-
-            exit(EXIT_SUCCESS);
+        // Create the first child process
+        pid1 = fork();
+        if (pid1 == 0) {
+            //The first child process
+            child1(argv[i]);
+            exit(0);
+        } else if (pid1 < 0) {
+            // Error occurred during fork()
+            printf("Error creating first child process\n");
+            exit(1);
         }
-    }
 
-    // parent process waits for all child processes to finish
-    for (j = 1; j < i; j++) {
-        waitpid(pid[j], NULL, 0);
+        // Create the second child process
+        pid2 = fork();
+        if (pid2 == 0) {
+            //The second child process
+            child2(argv[i]);
+            exit(0);
+        } else if (pid2 < 0) {
+            // Error occurred during fork()
+            printf("Error creating second child process\n");
+            exit(1);
+        }
+
+        // Wait for both child processes to finish
+        waitpid(pid1, NULL, 0);
+        waitpid(pid2, NULL, 0);
     }
 
     return 0;
-   
 }
