@@ -335,7 +335,7 @@ void print_file_info(char *path) {
         print_menu_directory(path);
     }
 }
-
+ /*
 void run_script(char *path) {
     int pipefd[2];
     pid_t pid;
@@ -398,6 +398,7 @@ void run_script(char *path) {
         }
     }
 }
+*/
 
 void child1(char *path) {
     printf("Child process 1 (PID %d)\n", getpid());
