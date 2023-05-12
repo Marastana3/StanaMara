@@ -2,17 +2,23 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include<sys/wait.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <libgen.h>
 #include <time.h>
 #include <dirent.h>
+#include <fcntl.h>
+
 
 #define MAX_LENGTH 10
 #define MAX_ARGS 10
 #define BUF_SIZE 258
 
+// Helper functions for the menus
+
 void get_last_modification_time(char *path){
+
     struct stat st;
     stat(path, &st);
     char date[10];
@@ -22,6 +28,7 @@ void get_last_modification_time(char *path){
 }
 
 void print_disk_count(char *path) {
+
     struct stat st;
     if (stat(path, &st) == 0) {
         unsigned long long disk_count = st.st_blocks / 2;
@@ -78,6 +85,7 @@ void access_rights(char *path){
 }
 
 void count_c_files(char *path) {
+
     DIR *dir;
     struct dirent *ent;
     int count = 0;
@@ -106,7 +114,10 @@ void count_c_files(char *path) {
     closedir(dir);
 }
 
+// Print the menus for REGULAR, SYMBOLIC and DIRECTORY
+
 void print_menu_regular_file(char *path){
+
     struct stat st;
     char option[MAX_LENGTH];
 
@@ -175,6 +186,7 @@ void print_menu_regular_file(char *path){
 }
 
 void print_menu_symbolic_file(char *path){
+
     struct stat st;
     int ret;
     char option[MAX_LENGTH];
@@ -250,6 +262,7 @@ void print_menu_symbolic_file(char *path){
 }
 
 void print_menu_directory(char *path){
+
    struct stat st;
    char option[MAX_LENGTH];
 
@@ -300,8 +313,10 @@ void print_menu_directory(char *path){
 
 }
 
+// Function where the menu handling happens
 
 void print_file_info(char *path) {
+
     struct stat st;
     char type;
     
@@ -335,85 +350,100 @@ void print_file_info(char *path) {
         print_menu_directory(path);
     }
 }
- /*
-void run_script(char *path) {
-    int pipefd[2];
-    pid_t pid;
-    char buf[BUF_SIZE];
 
-    if (pipe(pipefd) == -1) {
-        perror("pipe");
-        exit(EXIT_FAILURE);
+void count_lines(char *path){
+    
+    int num_lines = 0;
+    char buffer[1000];
+    ssize_t bytes_read;
+
+    int fd = open(path, O_RDONLY);
+    if (fd < 0) {
+        printf("Error opening file %s\n", path);
+        exit(1);
     }
 
-    pid = fork();
-    print_file_info(path);
-    if (pid == -1) {
-        perror("fork");
-        exit(EXIT_FAILURE);
-    } else if (pid == 0) {
-        // child process
-        close(pipefd[0]); // close unused read end of pipe
-        dup2(pipefd[1], STDOUT_FILENO); // redirect stdout to pipe write end
-
-        execlp("./script.sh", "./script.sh", path, NULL);
-        perror("execlp");
-        exit(EXIT_FAILURE);
-    } else {
-        // parent process
-        close(pipefd[1]); // close unused write end of pipe
-
-        int status;
-        waitpid(pid, &status, 0);
-
-        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-            int warnings = 0, errors = 0;
-            while (fgets(buf, BUF_SIZE, stdin) != NULL) {
-                if (strstr(buf, "warning")) {
-                    warnings++;
-                }
-                if (strstr(buf, "error")) {
-                    errors++;
-                }
+    while ((bytes_read = read(fd, buffer, sizeof(buffer))) > 0) {
+        for (int i = 0; i < bytes_read; ++i) {
+            if (buffer[i] == '\n') {
+                num_lines++;
             }
-
-            int score;
-            if (errors == 0 && warnings == 0) {
-                score = 10;
-            } else if (errors >= 1) {
-                score = 1;
-            } else if (warnings > 10) {
-                score = 2;
-            } else {
-                score = 2 + 8 * (10 - warnings) / 10;
-            }
-
-            char* filename = strrchr(path, '/') + 1;
-            printf("%s: %d\n", filename, score);
-            FILE* f = fopen("grades.txt", "a");
-            fprintf(f, "%s: %d\n", filename, score);
-            fclose(f);
-        } else {
-            printf("Failed to run script for file: %s\n", path);
         }
     }
+
+    close(fd);
+    printf("File %s has %d lines\n", path, num_lines);
 }
-*/
+
+void create_file(char *path) {
+
+    char filename[strlen(path) + 11]; // Allocate space for "_file.txt"
+    sprintf(filename, "%s_file.txt", path); // Create filename with directory name and extension
+
+    int fd = open(filename, O_WRONLY | O_CREAT, 0644);
+    if (fd == -1) {
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+
+    close(fd);
+}
+
+void run_script(char *path){
+
+    struct stat st;
+    size_t len = strlen(path);
+
+    // If file is regular
+    if (S_ISREG(st.st_mode)){
+
+        // if file has .c extension
+        if (len >= 2 && strcmp(path + len - 2, ".c") == 0){
+            char* script_args[] = {"./script.sh", path, NULL};
+            execvp(script_args[0], script_args);
+            // compute score...
+        }
+        // If file is regular but not a .c file
+        else {
+            printf("File %s is NOT a .c file\n", path);
+            count_lines(path);
+        }
+    }
+
+    // If file is symbolic
+
+    if(S_ISLNK(st.st_mode)){
+
+    }
+
+    // If the argument is a directory
+
+    if(S_ISDIR(st.st_mode)){
+        create_file(path);
+    }
+
+}
+
+// Functions that represent what each child process is going to do
 
 void child1(char *path) {
+
     printf("Child process 1 (PID %d)\n", getpid());
     print_file_info(path);
+    exit(1);
 }
 
 void child2(char *path) {
+
     printf("Child process 2 (PID %d)\n", getpid());
-    // Execute script.sh + compute score
+    // run_script(path);
+    exit(2);
 }
 
 int main(int argc, char* argv[]) {
     
     for (int i = 1; i < argc; ++i) {
-       int arg = atoi(argv[i]);
+       //int arg = atoi(argv[i]);
 
         pid_t pid1, pid2;
 
@@ -442,8 +472,12 @@ int main(int argc, char* argv[]) {
         }
 
         // Wait for both child processes to finish
-        waitpid(pid1, NULL, 0);
-        waitpid(pid2, NULL, 0);
+        int status1, status2;
+        waitpid(pid1, &status1, 0);
+        printf("The process with PID %d has ended with the exit code %d\n", pid1, WEXITSTATUS(status1));
+
+        waitpid(pid2, &status2, 0);
+        printf("The process with PID %d has ended with the exit code %d\n", pid2, WEXITSTATUS(status2));
     }
 
     return 0;
