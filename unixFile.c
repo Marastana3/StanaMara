@@ -360,6 +360,25 @@ void print_file_info(char *path) {
 
 // Helper functions for the 2nd child process
 
+void write_result_to_file(char *path, int score) {
+    
+    int fd = open("grades.txt", O_WRONLY | O_CREAT, 0644);
+    if (fd == -1) {
+        perror("open");
+        exit(EXIT_FAILURE);
+    }
+
+    // Write the result to the file descriptor
+    char buffer[256];
+    int n = snprintf(buffer, sizeof(buffer), "%s: %d\n", path, score);
+    if (write(fd, buffer, n) != n) {
+        perror("write");
+    }
+
+    close(fd);
+}
+
+
 void count_lines(char *path){
     
     int num_lines = 0;
@@ -428,10 +447,49 @@ void run_script(char *path){
 
         // if file has .c extension
         if (len >= 2 && strcmp(path + len - 2, ".c") == 0){
-            char* script_args[] = {"./script.sh", path, NULL};
-            execvp(script_args[0], script_args);
             // compute score...
+            char cmd[256];
+            snprintf(cmd, sizeof(cmd), "./script.sh %s", path);
+
+            // Open the pipe for reading the output of the script
+            FILE *pipe_fp = popen(cmd, "r");
+                if (pipe_fp == NULL) {
+                    perror("popen");
+                    exit(EXIT_FAILURE);
+                }
+
+            // Read the output of the script
+            char buffer[256];
+            int num_warnings = 0, num_errors = 0;
+            while (fgets(buffer, sizeof(buffer), pipe_fp) != NULL) {
+                    if (strstr(buffer, "warning")) {
+                        num_warnings++;
+                    }
+                    if (strstr(buffer, "error")) {
+                        num_errors++;
+                    }
+                printf("%s", buffer);
+            }
+
+            // Close the pipe
+            pclose(pipe_fp);
+
+            // Compute the score based on the number of errors and warnings
+            int score;
+            if (num_errors == 0 && num_warnings == 0) {
+                score = 10;
+            } else if (num_errors > 0) {
+                    score = 1;
+                } else if (num_warnings > 10) {
+                        score = 2;
+                    } else {
+                        score = 2 + 8 * (10 - num_warnings) / 10;
+                        }
+
+            // Write the result to the grades.txt file
+            write_result_to_file(path, score);
         }
+
         // If file is regular but not a .c file
         else {
             printf("File %s is NOT a .c file\n", path);
