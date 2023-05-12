@@ -22,6 +22,7 @@ void get_last_modification_time(char *path){
     struct stat st;
     stat(path, &st);
     char date[10];
+
     strftime(date, 20, "%d-%m-%y", localtime(&(st.st_ctime)));
     printf("The file %s was last modified at %s\n", path, date);
     date[0] = 0;
@@ -30,6 +31,8 @@ void get_last_modification_time(char *path){
 void print_disk_count(char *path) {
 
     struct stat st;
+    stat(path, &st);
+
     if (stat(path, &st) == 0) {
         unsigned long long disk_count = st.st_blocks / 2;
         printf("Hard disk count of file %s: %llu KB\n", path, disk_count);
@@ -93,7 +96,7 @@ void count_c_files(char *path) {
     dir = opendir(path);
     if (dir == NULL) {
         perror("Error opening directory");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     
     while ((ent = readdir(dir)) != NULL) {
@@ -102,7 +105,7 @@ void count_c_files(char *path) {
         struct stat st;
         if (stat(filename, &st) == -1) {
             perror("stat");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
         if (S_ISREG(st.st_mode)) { 
             if (strcmp(ent->d_name + strlen(ent->d_name) - 2, ".c") == 0) {
@@ -119,6 +122,7 @@ void count_c_files(char *path) {
 void print_menu_regular_file(char *path){
 
     struct stat st;
+    stat(path, &st);
     char option[MAX_LENGTH];
 
     beginning :
@@ -169,7 +173,7 @@ void print_menu_regular_file(char *path){
         scanf("%s", symbolic);
         if (symlink(path, symbolic) == -1) {
            perror("symlink");
-           exit(1);
+           exit(EXIT_FAILURE);
         }
     }
     else if (option[i] == 'q') {
@@ -188,6 +192,7 @@ void print_menu_regular_file(char *path){
 void print_menu_symbolic_file(char *path){
 
     struct stat st;
+    stat(path, &st);
     int ret;
     char option[MAX_LENGTH];
 
@@ -244,7 +249,7 @@ void print_menu_symbolic_file(char *path){
             printf("File deleted successfully!\n");
         } else {
             printf("Error deleting file!\n");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
     }
     else if (option[i] == 'q') {
@@ -264,6 +269,7 @@ void print_menu_symbolic_file(char *path){
 void print_menu_directory(char *path){
 
    struct stat st;
+   stat(path, &st);
    char option[MAX_LENGTH];
 
    beginning :
@@ -318,11 +324,12 @@ void print_menu_directory(char *path){
 void print_file_info(char *path) {
 
     struct stat st;
+    stat(path, &st);
     char type;
     
     if (lstat(path, &st) == -1) {
         perror(path);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     
     if (S_ISREG(st.st_mode)) {
@@ -351,6 +358,8 @@ void print_file_info(char *path) {
     }
 }
 
+// Helper functions for the 2nd child process
+
 void count_lines(char *path){
     
     int num_lines = 0;
@@ -360,7 +369,7 @@ void count_lines(char *path){
     int fd = open(path, O_RDONLY);
     if (fd < 0) {
         printf("Error opening file %s\n", path);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     while ((bytes_read = read(fd, buffer, sizeof(buffer))) > 0) {
@@ -377,8 +386,8 @@ void count_lines(char *path){
 
 void create_file(char *path) {
 
-    char filename[strlen(path) + 11]; // Allocate space for "_file.txt"
-    sprintf(filename, "%s_file.txt", path); // Create filename with directory name and extension
+    char filename[strlen(path) + 11]; 
+    sprintf(filename, "%s_file.txt", path);
 
     int fd = open(filename, O_WRONLY | O_CREAT, 0644);
     if (fd == -1) {
@@ -389,9 +398,29 @@ void create_file(char *path) {
     close(fd);
 }
 
+void change_permissions(char *path) {
+
+    struct stat st;
+    stat(path, &st);
+
+    if (lstat(path, &st) == -1) {
+        perror("lstat");
+        exit(EXIT_FAILURE);
+    }
+
+    mode_t permissions = S_IRWXU | S_IWGRP;
+    if (chmod(path, permissions) == -1) {
+        perror("chmod");
+        exit(EXIT_FAILURE);
+    }
+}
+
+// Function where the file type handling happens
+
 void run_script(char *path){
 
     struct stat st;
+    stat(path, &st);
     size_t len = strlen(path);
 
     // If file is regular
@@ -411,14 +440,12 @@ void run_script(char *path){
     }
 
     // If file is symbolic
-
-    if(S_ISLNK(st.st_mode)){
-
+    else if(S_ISLNK(st.st_mode)){
+        change_permissions(path);
     }
 
     // If the argument is a directory
-
-    if(S_ISDIR(st.st_mode)){
+    else if(S_ISDIR(st.st_mode)){
         create_file(path);
     }
 
@@ -430,14 +457,14 @@ void child1(char *path) {
 
     printf("Child process 1 (PID %d)\n", getpid());
     print_file_info(path);
-    exit(1);
+    exit(11);
 }
 
 void child2(char *path) {
 
     printf("Child process 2 (PID %d)\n", getpid());
-    // run_script(path);
-    exit(2);
+    run_script(path);
+    exit(22);
 }
 
 int main(int argc, char* argv[]) {
@@ -452,11 +479,11 @@ int main(int argc, char* argv[]) {
         if (pid1 == 0) {
             //The first child process
             child1(argv[i]);
-            exit(0);
+            exit(EXIT_SUCCESS);
         } else if (pid1 < 0) {
-            // Error occurred during fork()
+            
             printf("Error creating first child process\n");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
 
         // Create the second child process
@@ -464,11 +491,10 @@ int main(int argc, char* argv[]) {
         if (pid2 == 0) {
             //The second child process
             child2(argv[i]);
-            exit(0);
+            exit(EXIT_SUCCESS);
         } else if (pid2 < 0) {
-            // Error occurred during fork()
             printf("Error creating second child process\n");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
 
         // Wait for both child processes to finish
