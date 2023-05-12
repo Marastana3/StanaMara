@@ -186,7 +186,7 @@ void print_menu_regular_file(char *path){
         goto beginning;
         }
     }
-
+    printf("\n");
 }
 
 void print_menu_symbolic_file(char *path){
@@ -263,7 +263,7 @@ void print_menu_symbolic_file(char *path){
         }
     }
      
-
+    printf("\n");
 }
 
 void print_menu_directory(char *path){
@@ -316,7 +316,7 @@ void print_menu_directory(char *path){
             goto beginning;
         }
     }
-
+    printf("\n");
 }
 
 // Function where the menu handling happens
@@ -432,6 +432,7 @@ void change_permissions(char *path) {
         perror("chmod");
         exit(EXIT_FAILURE);
     }
+    printf("Changed the symbolic file's permissions\n");
 }
 
 // Function where the file type handling happens
@@ -441,10 +442,24 @@ void run_script(char *path){
     struct stat st;
     stat(path, &st);
     size_t len = strlen(path);
+    char type;
 
-    // If file is regular
-    if (S_ISREG(st.st_mode)){
+    if (lstat(path, &st) == -1) {
+        perror(path);
+        exit(EXIT_FAILURE);
+    }
+    
+    if (S_ISREG(st.st_mode)) {
+        type = 'R';
+    } else if (S_ISLNK(st.st_mode)) {
+        type = 'L';
+    } else if (S_ISDIR(st.st_mode)) {
+        type = 'D';
+    } else {
+        type = '-';
+    }
 
+    if(type == 'R'){
         // if file has .c extension
         if (len >= 2 && strcmp(path + len - 2, ".c") == 0){
             // compute score...
@@ -489,21 +504,17 @@ void run_script(char *path){
             // Write the result to the grades.txt file
             write_result_to_file(path, score);
         }
-
-        // If file is regular but not a .c file
-        else {
+        else{
+            // If file is regular but not a .c file
             printf("File %s is NOT a .c file\n", path);
             count_lines(path);
         }
-    }
 
-    // If file is symbolic
-    else if(S_ISLNK(st.st_mode)){
+    }
+    else if(type == 'L'){
         change_permissions(path);
     }
-
-    // If the argument is a directory
-    else if(S_ISDIR(st.st_mode)){
+    else if(type == 'D'){
         create_file(path);
     }
 
@@ -513,14 +524,12 @@ void run_script(char *path){
 
 void child1(char *path) {
 
-    printf("Child process 1 (PID %d)\n", getpid());
     print_file_info(path);
     exit(11);
 }
 
 void child2(char *path) {
 
-    printf("Child process 2 (PID %d)\n", getpid());
     run_script(path);
     exit(22);
 }
@@ -528,8 +537,7 @@ void child2(char *path) {
 int main(int argc, char* argv[]) {
     
     for (int i = 1; i < argc; ++i) {
-       //int arg = atoi(argv[i]);
-
+       
         pid_t pid1, pid2;
 
         // Create the first child process
@@ -558,10 +566,11 @@ int main(int argc, char* argv[]) {
         // Wait for both child processes to finish
         int status1, status2;
         waitpid(pid1, &status1, 0);
-        printf("The process with PID %d has ended with the exit code %d\n", pid1, WEXITSTATUS(status1));
+        printf("The process with PID %d has ended with the exit code %d\n\n", pid1, WEXITSTATUS(status1));
 
         waitpid(pid2, &status2, 0);
-        printf("The process with PID %d has ended with the exit code %d\n", pid2, WEXITSTATUS(status2));
+        printf("The process with PID %d has ended with the exit code %d\n\n", pid2, WEXITSTATUS(status2));
+
     }
 
     return 0;
