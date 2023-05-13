@@ -431,7 +431,6 @@ void change_permissions(char *path) {
         perror("chmod");
         exit(EXIT_FAILURE);
     }
-    printf("Changed the symbolic file's permissions\n");
 }
 
 int main(int argc, char* argv[]) {
@@ -503,17 +502,21 @@ int main(int argc, char* argv[]) {
                     // If file is regular but not a .c file
                     printf("File %s is NOT a .c file\n", argv[i]);
                     count_lines(argv[i]);
+                    exit(20);
+                
                 }
             }
 
             if(type == 'L'){
                 change_permissions(argv[i]);
+                exit(21);
             }
 
             if(type == 'D'){
                 create_file(argv[i]);
+                exit(22);
             }
-            exit(22);
+        
 
         } else{ // Parent process
             close(pipefd[1]); // Close write end of the pipe
